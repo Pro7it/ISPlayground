@@ -1,13 +1,15 @@
-import os
+from fastapi import HTTPException
 import random
 import math
 
-m = 2**18 - 1
-a = 5**3
-c = 34
-x0 = 512
+m = 2**29 - 1
+a = 16**3
+c = 6765
+x0 = 23
 
-def generate(count):
+def lab1(count: int, m = 2**29 -1, a = 16**3, c = 6765, x0 = 23):
+    if count <= 0 or count > int(1e6):
+        raise HTTPException(status_code=400, detail="Неможливо згенерувати")
 
     def next_random(x_prev):
         return ((a*x_prev + c)%(m))
@@ -20,7 +22,7 @@ def generate(count):
 
     x_cur = x0
     T = 0
-    while True:
+    for i in range(int(1e6)):
         x_cur = next_random(x_cur)
         T += 1
         if x_cur == x0:
@@ -46,10 +48,10 @@ def generate(count):
 
     P = gcd_cnt / N if N != 0 else 0
 
-    pi_error_my = None
+    pi_est_my = None
     if P != 0:
-        pi_est = math.sqrt(6 / P)
-        pi_error_my = abs(math.pi - pi_est)
+        pi_est_my = math.sqrt(6 / P)
+        # pi_error_my = abs(math.pi - pi_est)
 
 
     random.seed(x0)
@@ -60,15 +62,15 @@ def generate(count):
 
     P = gcd_cnt / N if N != 0 else 0
 
-    pi_error_sys = None
+    pi_est_sys = None
     if P != 0:
-        pi_est = math.sqrt(6 / P)
-        pi_error_sys = abs(math.pi - pi_est)
+        pi_est_sys = math.sqrt(6 / P)
+        # pi_error_sys = abs(math.pi - pi_est)
     
 
     return {
         "numbers": randoms,
         "period": T,
-        "pi_error_my": pi_error_my,
-        "pi_error_sys": pi_error_sys,
+        "pi_est_my": pi_est_my,
+        "pi_est_sys": pi_est_sys,
     }

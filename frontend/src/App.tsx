@@ -1,5 +1,5 @@
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
-import "react-tabs/style/react-tabs.css";
+// import "react-tabs/style/react-tabs.css";
 
 import Lab1 from "./pages/Lab1";
 import Lab2 from "./pages/Lab2";
@@ -8,10 +8,18 @@ import { Typography } from "antd";
 
 function App() {
   return (
-    <div>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "40px",
+        boxSizing: "border-box",
+      }}
+    >
       <Typography.Title level={2}>Захист інформації</Typography.Title>
 
-      <div style={{ width: "1200px" }}>
+      <div style={{ width: "1500px" }}>
         <Tabs>
           <TabList>
             <Tab>ГПВЧ</Tab>
