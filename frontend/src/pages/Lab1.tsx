@@ -71,21 +71,17 @@ export default function Lab1() {
   const downloadTxt = async () => {
     if (!result) return;
 
-    // Формуємо вміст БЕЗ відступів на початку рядків
     const content = [
-      `=== ПАРАМЕТРИ ГЕНЕРАЦІЇ ===`,
       `Кількість чисел (N): ${count}`,
       `Модуль (m): ${params.m}`,
       `Множник (a): ${params.a}`,
       `Приріст (c): ${params.c}`,
       `Початкове значення (x0): ${params.x0}`,
       ``,
-      `=== РЕЗУЛЬТАТИ АНАЛІЗУ ===`,
       `Період: ${result.period === 1000000 ? ">1e6" : result.period}`,
       `Похибка Pi (власна): ${formatValue(result.pi_est_my)}`,
       `Похибка Pi (системна): ${formatValue(result.pi_est_sys)}`,
       ``,
-      `=== ЗГЕНЕРОВАНІ ЧИСЛА ===`,
       result.numbers.join("\n"),
     ].join("\n");
 
