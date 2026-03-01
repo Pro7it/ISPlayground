@@ -50,7 +50,7 @@ async def check_lab2_file(
     hash: str = Form(None)
 ):
     m = MD5()
-    while chunk := await file.read(1024 * 1024 * 64):
+    while chunk := await file.read(1024 * 1024 * 128):
         m.update(chunk)
     
     result_hash = m.finalize()
