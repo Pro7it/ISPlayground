@@ -1,6 +1,6 @@
-from fastapi import HTTPException
 import struct
 
+# синус для рандому функції
 K = [0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 
     0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
     0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
@@ -18,6 +18,7 @@ K = [0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,
     0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
     0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391]
 
+# ротації
 S = [7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
     5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
     4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
@@ -25,44 +26,51 @@ S = [7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
 
 class MD5:
     def __init__(self):
+        # початкові значення алгоритма
         self.A0 = 0x67452301
         self.B0 = 0xefcdab89
         self.C0 = 0x98badcfe
         self.D0 = 0x10325476
         self.count = 0
         self.buffer = b""
-
-    def _combine(self, A,B,C,D,i,M):
-        if i < 16:
-            F = (B & C) | ((~B) & D)
-            g = i
-        elif i < 32:
-            F = (B & D) | (C & (~D))
-            g = (5*i + 1) % 16
-        elif i < 48:
-            F = B ^ C ^ D
-            g = (3*i + 5) % 16
-        else:
-            F = C ^ (B | (~D))
-            g = (7*i) % 16
-
-        F = (F + A + K[i] + M[g]) & 0xFFFFFFFF
-        F = ((F << S[i]) | (F >> (32 - S[i]))) & 0xFFFFFFFF
-        F = (F + B) & 0xFFFFFFFF
-        return F
     
-    def _process_block(self,block):
-        M = [int.from_bytes(block[j:j+4], byteorder='little') for j in range(0,64,4)]
-        A,B,C,D = self.A0,self.B0,self.C0,self.D0
+    def _process_block(self, block):
 
-        for j in range(64):
-            F = self._combine(A,B,C,D,j,M)
-            A,B,C,D = D,F,B,C
+        M = struct.unpack("<16I", block)
 
-        self.A0 = (self.A0 + A) & 0xFFFFFFFF
-        self.B0 = (self.B0 + B) & 0xFFFFFFFF
-        self.C0 = (self.C0 + C) & 0xFFFFFFFF
-        self.D0 = (self.D0 + D) & 0xFFFFFFFF
+        A = self.A0
+        B = self.B0
+        C = self.C0
+        D = self.D0
+
+        K_local = K
+        S_local = S
+
+        for i in range(64):
+
+            if i < 16:
+                F = (B & C) | (~B & D)
+                g = i
+            elif i < 32:
+                F = (B & D) | (C & ~D)
+                g = (5*i + 1) & 15
+            elif i < 48:
+                F = B ^ C ^ D
+                g = (3*i + 5) & 15
+            else:
+                F = C ^ (B | ~D)
+                g = (7*i) & 15
+
+            F = (F + A + K_local[i] + M[g]) & 0xffffffff
+
+            F = ((F << S_local[i]) | (F >> (32 - S_local[i]))) & 0xffffffff
+
+            A, B, C, D = D, (B + F) & 0xffffffff, B, C
+
+        self.A0 = (self.A0 + A) & 0xffffffff
+        self.B0 = (self.B0 + B) & 0xffffffff
+        self.C0 = (self.C0 + C) & 0xffffffff
+        self.D0 = (self.D0 + D) & 0xffffffff
 
     def update(self, chunk: bytes):
         self.buffer += chunk

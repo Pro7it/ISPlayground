@@ -1,15 +1,11 @@
 import { useState } from "react";
 import axios from "axios";
-import { Card, Typography } from "antd";
+import { Card, Spin, Typography } from "antd";
 import { Tab, TabList, TabPanel, Tabs } from "react-tabs";
 import Dragger from "antd/es/upload/Dragger";
 import { InboxOutlined } from "@ant-design/icons";
 
-interface ILab2G {
-  hash: string;
-}
-
-interface ILab2C {
+interface ILab2 {
   is_valid: boolean;
   hash: string;
 }
@@ -17,35 +13,39 @@ interface ILab2C {
 export default function Lab2() {
   const [msg, setMsg] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
-  const [resultG, setResultG] = useState<ILab2G | null>(null);
-  const [resultC, setResultC] = useState<ILab2C | null>(null);
+  const [result, setResult] = useState<ILab2 | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
+    setLoading(true);
     try {
       let response;
       const formData = new FormData();
 
       if (file) {
         formData.append("file", file);
-        response = await axios.post<ILab2G>(
+        response = await axios.post<ILab2>(
           "http://localhost:8000/api/lab2/generate/file",
           formData,
         );
       } else {
         formData.append("msg", msg);
-        response = await axios.post<ILab2G>(
+        response = await axios.post<ILab2>(
           "http://localhost:8000/api/lab2/generate/text",
           formData,
         );
       }
 
-      setResultG(response.data);
-    } catch (e) {
-      alert("Помилка при генерації хеша");
+      setResult(response.data);
+    } catch (e: any) {
+      alert(e.response?.data?.detail || "Помилка при генерації хеша");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleFileSubmit = async () => {
+    setLoading(true);
     if (!file) return;
     const formData = new FormData();
     formData.append("file", file);
@@ -56,29 +56,56 @@ export default function Lab2() {
         "http://localhost:8000/api/lab2/check",
         formData,
       );
-      setResultC(response.data);
-    } catch (e) {
-      alert("Помилка при обробці файлу");
+      setResult(response.data);
+    } catch (e: any) {
+      alert(e.response?.data?.detail || "Помилка при обробці файлу");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const downloadTxt = () => {
-    if (!resultG) return;
+  const downloadTxt = async () => {
+    if (!result) return;
 
-    const content = resultG.hash;
+    const sourceInfo = file
+      ? `Input file: ${file.name}`
+      : `Input message: ${msg}`;
 
-    const blob = new Blob([content], {
-      type: "text/plain;charset=utf-8;",
-    });
+    const contentLines = [sourceInfo, `MD5 хеш: ${result.hash}`];
 
+    if (typeof result.is_valid !== "undefined") {
+      contentLines.push(
+        `Check status: ${result.is_valid ? "Match" : "Not match"}`,
+      );
+    }
+
+    const content = contentLines.join("\n");
+    const fileName = `lab2_result_${new Date().getTime()}.txt`;
+
+    if ("showSaveFilePicker" in window) {
+      try {
+        const handle = await (window as any).showSaveFilePicker({
+          suggestedName: fileName,
+          types: [
+            { description: "Text File", accept: { "text/plain": [".txt"] } },
+          ],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(content);
+        await writable.close();
+        return;
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+      }
+    }
+
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "md5_result.txt");
+    link.setAttribute("download", fileName);
     document.body.appendChild(link);
     link.click();
-
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
@@ -105,10 +132,11 @@ export default function Lab2() {
 
       <Tabs
         onSelect={() => {
-          setMsg("");
-          setFile(null);
-          setResultC(null);
-          setResultG(null);
+          if (!loading) {
+            setMsg("");
+            setFile(null);
+            setResult(null);
+          }
         }}
       >
         <TabList>
@@ -126,7 +154,7 @@ export default function Lab2() {
                 }}
                 maxCount={1}
                 onRemove={() => setFile(null)}
-                disabled={!!msg}
+                disabled={!!msg || loading}
               >
                 <InboxOutlined />
                 <Typography.Paragraph>
@@ -141,44 +169,15 @@ export default function Lab2() {
                   placeholder="Або введіть повідомлення"
                   onChange={(e) => setMsg(e.target.value)}
                   style={{ flex: 1 }}
-                  disabled={!!file}
+                  disabled={!!file || loading}
                 />
 
-                <button onClick={handleSubmit}>Генерувати</button>
+                <button onClick={handleSubmit} disabled={loading}>
+                  Генерувати
+                </button>
               </div>
             </div>
           </Card>
-          {resultG && (
-            <Card>
-              <Typography.Title level={4} style={{ marginTop: 0 }}>
-                Результат:
-              </Typography.Title>
-
-              <Card
-                style={{
-                  textAlign: "center",
-                  minHeight: 120,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  marginBottom: 24,
-                }}
-              >
-                <Typography.Title level={3} style={{ margin: 0 }}>
-                  {resultG.hash}
-                </Typography.Title>
-                <Typography.Text type="secondary">MD5 хеш</Typography.Text>
-              </Card>
-              <div style={{ display: "flex" }}>
-                <button
-                  // onClick={downloadTxt}
-                  style={{ flex: 1 }}
-                >
-                  Завантажити
-                </button>
-              </div>
-            </Card>
-          )}
         </TabPanel>
         <TabPanel>
           <Card>
@@ -190,6 +189,7 @@ export default function Lab2() {
                 }}
                 maxCount={1}
                 onRemove={() => setFile(null)}
+                disabled={loading}
               >
                 <InboxOutlined />
                 <Typography.Paragraph>
@@ -202,48 +202,76 @@ export default function Lab2() {
                   value={msg}
                   onChange={(e) => setMsg(e.target.value)}
                   style={{ flex: 1 }}
+                  disabled={loading}
                 />
-                <button onClick={handleFileSubmit} disabled={!file}>
+                <button onClick={handleFileSubmit} disabled={!file || loading}>
                   Обробити файл
                 </button>
               </div>
             </div>
           </Card>
-          {resultC && (
-            <Card>
-              <Typography.Title level={4} style={{ marginTop: 0 }}>
-                Результат:
-              </Typography.Title>
-
-              <Card
-                style={{
-                  textAlign: "center",
-                  minHeight: 120,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  marginBottom: 24,
-                }}
-              >
-                <Typography.Title level={3} style={{ margin: 0 }}>
-                  {resultC.hash}
-                </Typography.Title>
-                <Typography.Text type="secondary">
-                  {resultC.is_valid ? "Valid" : "Not match"}
-                </Typography.Text>
-              </Card>
-              <div style={{ display: "flex" }}>
-                <button
-                  // onClick={downloadTxt}
-                  style={{ flex: 1 }}
-                >
-                  Завантажити
-                </button>
-              </div>
-            </Card>
-          )}
         </TabPanel>
       </Tabs>
+      {loading && (
+        <Card>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              padding: "20px",
+            }}
+          >
+            <Spin size="large" />
+          </div>
+        </Card>
+      )}
+
+      {result && !loading && (
+        <Card>
+          <Typography.Title level={4} style={{ marginTop: 0 }}>
+            Результат:
+          </Typography.Title>
+
+          <Card
+            style={{
+              textAlign: "center",
+              minHeight: 120,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+            }}
+          >
+            <Typography.Title
+              level={3}
+              style={{ margin: 0, wordBreak: "break-all" }}
+            >
+              {result.hash}
+            </Typography.Title>
+            <Typography.Text
+              type="secondary"
+              style={{
+                color:
+                  typeof result.is_valid !== "undefined"
+                    ? result.is_valid
+                      ? "#32CD32"
+                      : "#FF4D4F"
+                    : "inherit",
+              }}
+            >
+              {typeof result.is_valid !== "undefined"
+                ? result.is_valid
+                  ? "Співпадають"
+                  : "Не співпадають"
+                : "MD5 хеш"}
+            </Typography.Text>
+          </Card>
+          <div style={{ display: "flex" }}>
+            <button onClick={downloadTxt} style={{ flex: 1 }}>
+              Завантажити
+            </button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
