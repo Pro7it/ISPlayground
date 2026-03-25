@@ -36,8 +36,17 @@ public:
         count = 0;
         buffer.clear();
     }
-
-// буферизуємо доки не буде 64, а там опрацьовуємо
+    
+    void clear() {
+        A0 = 0x67452301;
+        B0 = 0xefcdab89;
+        C0 = 0x98badcfe;
+        D0 = 0x10325476;
+        count = 0;
+        buffer.clear();
+    }
+    
+    // буферизуємо доки не буде 64, а там опрацьовуємо
     void update(const uint8_t* data, size_t len) {
         size_t i = 0;
         while (len > 0) {
@@ -47,61 +56,63 @@ public:
             count += to_copy;
             i += to_copy;
             len -= to_copy;
-
+            
             if (buffer.size() == MD5_BLOCK_SIZE) {
                 process_block(buffer.data());
                 buffer.clear();
             }
         }
     }
-
-// на кінець додаємо padding та розмір повідомлення, та фінально опрацьовуємо
+    
+    // на кінець додаємо padding та розмір повідомлення, та фінально опрацьовуємо
     string finalize() {
         uint64_t bits_len = count * 8;
-
+        
         // базовий педдінг 
         buffer.push_back(0x80);
         while ((buffer.size() % MD5_BLOCK_SIZE) != MD5_LAST_BLOCK_SIZE)
-            buffer.push_back(0x00);
-
+        buffer.push_back(0x00);
+        
         // а тут уже додавання розміру m у le
         for (int i = 0; i < 8; ++i)
-            buffer.push_back((bits_len >> (8*i)));
-
+        buffer.push_back((bits_len >> (8*i)));
+        
         while (buffer.size() >= MD5_BLOCK_SIZE) {
             process_block(buffer.data());
             buffer.erase(buffer.begin(), buffer.begin() + MD5_BLOCK_SIZE);
         }
-
+        
         // зліплюємо фінальний хеш
         uint8_t digest[16];
         put_uint32_le(A0, digest);
         put_uint32_le(B0, digest + 4);
         put_uint32_le(C0, digest + 8);
         put_uint32_le(D0, digest + 12);
-
+        
         // оформлюємо у MD5 формат
         ostringstream oss;
         oss << hex << setfill('0');
         for (int i = 0; i < 16; ++i)
-            oss << setw(2) << static_cast<int>(digest[i]);
+        oss << setw(2) << static_cast<int>(digest[i]);
+        clear();
         return oss.str();
     }
-
-private:
+    
+    private:
     uint32_t A0, B0, C0, D0;
     uint64_t count;
     vector<uint8_t> buffer;
+    
 
-// серце алгоритму, обробляємо блоки по 512 біт
+    // серце алгоритму, обробляємо блоки по 512 біт
     void process_block(const uint8_t* block) {
         uint32_t M[16];
         for (int i = 0; i < 16; i++) {
             M[i] = block[i*4] | (block[i*4+1]<<8) | (block[i*4+2]<<16) | (block[i*4+3]<<24);
         }
-
+        
         uint32_t A = A0, B = B0, C = C0, D = D0;
-
+        
         for (int i = 0; i < 64; ++i) {
             uint32_t F, g;
             if (i < 16) {
@@ -151,5 +162,6 @@ PYBIND11_MODULE(md5, m) {
             std::string_view s = data;
             self.update(reinterpret_cast<const uint8_t*>(s.data()), s.size());
         })
-        .def("finalize", &MD5::finalize);
+        .def("finalize", &MD5::finalize)
+        .def("clear", &MD5::clear);
 }

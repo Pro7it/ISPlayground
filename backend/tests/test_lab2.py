@@ -38,7 +38,7 @@ def test_md5_long():
 
 def test_file():
     m = md5.MD5()
-    file_path = Path(__file__).parent / "test_lab2_file.zip"
+    file_path = Path(__file__).parent / "testfile.zip"
     with open(file_path, "rb") as file:
         while chunk := file.read(1024 * 1024):
             m.update(chunk)

@@ -1,76 +1,71 @@
-from fastapi import HTTPException
-import random
 import math
+import random
 
-m = 2**29 - 1
-a = 16**3
-c = 6765
-x0 = 23
+class LCG:
+    def __init__(self, seed: int = 23, m: int = 2**29 - 1, a: int = 16**3, c: int = 6765):
+        self.m = m
+        self.a = a
+        self.c = c
+        self.x = seed
 
-def lab1(count: int, m = 2**29 -1, a = 16**3, c = 6765, x0 = 23):
-    if count <= 0 or count > int(1e6):
-        raise HTTPException(status_code=400, detail="Неможливо згенерувати")
+    def next(self) -> int:
+        self.x = (self.a * self.x + self.c) % self.m
+        return self.x
 
-    def next_random(x_prev):
-        return ((a*x_prev + c)%(m))
+    def generate(self, count: int):
+        if count <= 0 or count > int(1e6):
+            raise ValueError("Неможливо згенерувати")
 
-    randoms = []
-    x_cur = x0
-    for _ in range(count):
-        x_cur = next_random(x_cur)
-        randoms.append(x_cur)
+        return [self.next() for _ in range(count)]
 
-    x_cur = x0
-    T = 0
-    for i in range(int(1e6)):
-        x_cur = next_random(x_cur)
-        T += 1
-        if x_cur == x0:
-            break
+    def period(self, limit: int = int(1e6)) -> int:
+        start = self.x
+        x_cur = start
 
-    def gcd(a,b):
-        if a < b: a,b = b,a
-        if a%b > 0: return gcd(b,a%b)
-        return b
+        for i in range(1, limit + 1):
+            x_cur = (self.a * x_cur + self.c) % self.m
+            if x_cur == start:
+                return i
+        return limit
 
-    gcd_cnt = 0
-    x_cur = x0
-    N = len(randoms)
+    @staticmethod
+    def gcd(a, b):
+        while b:
+            a, b = b, a % b
+        return a
 
-    for _ in range(N):
-        x_cur = next_random(x_cur)
-        a_val = x_cur
-        x_cur = next_random(x_cur)
-        b_val = x_cur
+    def estimate_pi(self, count: int):
+        if count <= 0:
+            return None
 
-        if gcd(a_val, b_val) == 1:
-            gcd_cnt += 1
+        gcd_cnt = 0
 
-    P = gcd_cnt / N if N != 0 else 0
+        for _ in range(count):
+            a_val = self.next()
+            b_val = self.next()
 
-    pi_est_my = None
-    if P != 0:
-        pi_est_my = math.sqrt(6 / P)
-        # pi_error_my = abs(math.pi - pi_est)
+            if self.gcd(a_val, b_val) == 1:
+                gcd_cnt += 1
 
+        P = gcd_cnt / count
+        return math.sqrt(6 / P) if P != 0 else None
 
-    random.seed(x0)
-    gcd_cnt = 0
+    def estimate_pi_system(self, count: int):
+        random.seed(self.x)
 
-    for _ in range(N):
-        if gcd(random.randint(1,m), random.randint(1,m)) == 1: gcd_cnt += 1
+        gcd_cnt = 0
+        for _ in range(count):
+            if self.gcd(random.randint(1, self.m), random.randint(1, self.m)) == 1:
+                gcd_cnt += 1
 
-    P = gcd_cnt / N if N != 0 else 0
+        P = gcd_cnt / count
+        return math.sqrt(6 / P) if P != 0 else None
 
-    pi_est_sys = None
-    if P != 0:
-        pi_est_sys = math.sqrt(6 / P)
-        # pi_error_sys = abs(math.pi - pi_est)
-    
+    def generate_iv(self, block_size: int = 8):
+        iv = b""
 
-    return {
-        "numbers": randoms,
-        "period": T,
-        "pi_est_my": pi_est_my,
-        "pi_est_sys": pi_est_sys,
-    }
+        while len(iv) < block_size:
+            num = self.next()
+            iv += num.to_bytes(4, "little")
+
+        return iv[:block_size]
