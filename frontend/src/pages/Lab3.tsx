@@ -127,14 +127,16 @@ export default function Lab3() {
                 </Typography.Paragraph>
               </Dragger>
 
-              <input
-                type="password"
-                placeholder="Пароль"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ width: "100%" }}
-                disabled={loading}
-              />
+              <div style={{ display: "flex" }}>
+                <input
+                  type="password"
+                  placeholder="Пароль"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{ flex: 1 }}
+                  disabled={loading}
+                />
+              </div>
 
               <button
                 onClick={handleEncrypt}
@@ -165,14 +167,16 @@ export default function Lab3() {
                 </Typography.Paragraph>
               </Dragger>
 
-              <input
-                type="password"
-                placeholder="Пароль"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ width: "100%" }}
-                disabled={loading}
-              />
+              <div style={{ display: "flex" }}>
+                <input
+                  type="password"
+                  placeholder="Пароль"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{ width: "100%" }}
+                  disabled={loading}
+                />
+              </div>
 
               <button
                 onClick={handleDecrypt}

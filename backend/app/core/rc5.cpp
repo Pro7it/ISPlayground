@@ -1,14 +1,18 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-const uint8_t W = 32;
-const uint8_t R = 20;
-const uint8_t B = 32;
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+namespace py = pybind11;
 
-const uint64_t P = 0xB7E15163;
-const uint64_t Q = 0x9E3779B9;
+const uint8_t W = 32; // довжина слова
+const uint8_t R = 20; // раунди
+const uint8_t B = 32; // довжина ключа
 
-const uint8_t BLOCK_SIZE = 8;
+const uint32_t P = 0xB7E15163; // константа P
+const uint32_t Q = 0x9E3779B9; // константа Q
+
+const uint8_t BLOCK_SIZE = 8; // розмір блоку, який передаємо у альгоритм
 
 class RC5 {
 public:
@@ -16,23 +20,26 @@ public:
         keyExpansion(key);
     }
 
+    // приймаємо файл та вектор ініціалізацій
     vector<uint8_t> encrypt(const vector<uint8_t>& data, const vector<uint8_t>& iv) {
         vector<uint8_t> padded = pad(data);
         vector<uint8_t> out;
         out.reserve(padded.size());
 
+        // інт у байт
         uint32_t prevA = bytesToUInt(iv.data());
-        uint32_t prevB = bytesToUInt(iv.data()+4);
+        uint32_t prevB = bytesToUInt(iv.data()+(BLOCK_SIZE/2));
 
         for (size_t i=0; i<padded.size(); i+=BLOCK_SIZE) {
             uint32_t A = bytesToUInt(&padded[i]);
-            uint32_t B = bytesToUInt(&padded[i+4]);
+            uint32_t B = bytesToUInt(&padded[i+(BLOCK_SIZE/2)]);
 
             A ^= prevA; B ^= prevB;
             encryptBlock(A, B);
 
             prevA = A; prevB = B;
 
+            // байт у інт
             appendUInt(out, A);
             appendUInt(out, B);
         }
@@ -40,16 +47,17 @@ public:
         return out;
     }
 
+    // абсолютно те саме, окрім unpad вкінці
     vector<uint8_t> decrypt(const vector<uint8_t>& data, const vector<uint8_t>& iv) {
         vector<uint8_t> out;
         out.reserve(data.size());
 
         uint32_t prevA = bytesToUInt(iv.data());
-        uint32_t prevB = bytesToUInt(iv.data()+4);
+        uint32_t prevB = bytesToUInt(iv.data()+(BLOCK_SIZE/2));
 
         for (size_t i=0; i<data.size(); i+=BLOCK_SIZE) {
             uint32_t A = bytesToUInt(&data[i]);
-            uint32_t B = bytesToUInt(&data[i+4]);
+            uint32_t B = bytesToUInt(&data[i+(BLOCK_SIZE/2)]);
 
             uint32_t tempA = A, tempB = B;
             decryptBlock(A, B);
@@ -66,14 +74,14 @@ public:
     }
 
 private:
-    vector<uint32_t> S;
+    vector<uint32_t> S; // ключ розбитий на етапи раундів
+
+    // розбиття ключа
     void keyExpansion(const vector<uint8_t>& key) {
-        const uint32_t P = 0xB7E15163;
-        const uint32_t Q = 0x9E3779B9;
 
         int C = (key.size() + 3)/4;
         vector<uint32_t> L(C, 0);
-        for (int i=key.size()-1; i>=0; --i) {
+        for (int i=key.size()-1; i>=0; i--) {
             L[i/4] = (L[i/4]<<8) + key[i];
         }
 
@@ -131,21 +139,20 @@ private:
         return vector<uint8_t>(data.begin(), data.end()-pad_len);
     }
 
+    // байти в інт
     static uint32_t bytesToUInt(const uint8_t* b){
         return b[0] | (b[1]<<8) | (b[2]<<16) | (b[3]<<24);
     }
 
+    // інт в байти
     static void appendUInt(vector<uint8_t>& out, uint32_t x){
-        out.push_back(x & 0xFF);
-        out.push_back((x>>8) & 0xFF);
-        out.push_back((x>>16) & 0xFF);
-        out.push_back((x>>24) & 0xFF);
+        out.push_back(x);
+        out.push_back((x>>8));
+        out.push_back((x>>16));
+        out.push_back((x>>24));
     }
 };
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-namespace py = pybind11;
 
 PYBIND11_MODULE(rc5, m) {
     py::class_<RC5>(m, "RC5")
