@@ -28,14 +28,15 @@ export default function Lab3() {
         { responseType: "blob" },
       );
 
-      const url = URL.createObjectURL(response.data);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `${file.name}.enc`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const blob = response.data;
+
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: `${file.name}.enc`,
+      });
+
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
     } catch (e: any) {
       alert(e.response?.data?.detail || "Помилка при шифруванні файлу");
     } finally {
@@ -65,14 +66,15 @@ export default function Lab3() {
         ? file.name.slice(0, -4)
         : `decrypted_${file.name}`;
 
-      const url = URL.createObjectURL(response.data);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", filename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const blob = response.data;
+
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: filename,
+      });
+
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
     } catch (e: any) {
       alert(e.response?.data?.detail || "Помилка при дешифруванні файлу");
     } finally {
@@ -129,7 +131,7 @@ export default function Lab3() {
 
               <div style={{ display: "flex" }}>
                 <input
-                  type="password"
+                  type="text"
                   placeholder="Пароль"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -169,7 +171,7 @@ export default function Lab3() {
 
               <div style={{ display: "flex" }}>
                 <input
-                  type="password"
+                  type="text"
                   placeholder="Пароль"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

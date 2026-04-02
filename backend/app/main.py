@@ -5,7 +5,8 @@ from app.core.lab1 import LCG
 from app.core import md5, rc5
 # from app.core.lab3 import RC5
 import re
-import io
+
+CHUNK_SIZE = 1 * 1024 * 1024  # 1 MB
 
 app = FastAPI()
 
@@ -59,7 +60,7 @@ async def generate_lab2_file(
     file: UploadFile = File(...),
 ):
     m = md5.MD5()
-    while chunk := await file.read(1024*1024):
+    while chunk := await file.read(CHUNK_SIZE):
         m.update(chunk)
 
     res_hash = m.finalize()
@@ -82,7 +83,7 @@ async def check_lab2_file(
         )
 
     m = md5.MD5()
-    while chunk := await file.read(1024*1024):
+    while chunk := await file.read(CHUNK_SIZE):
         m.update(chunk)
     
     result_hash = m.finalize()
@@ -94,67 +95,87 @@ async def check_lab2_file(
         "is_valid": is_valid
     }
 
-@app.post("/api/lab3/encrypt")
-async def encrypt_file(
-    file: UploadFile = File(...),
-    password: str = Form(...)
-):
-    data = await file.read()
 
+def derive_key(password):
     m = md5.MD5()
     m.update(password.encode())
     h1 = bytes.fromhex(m.finalize())
     m.update(h1)
     h2 = bytes.fromhex(m.finalize())
-    key = h2 + h1
+    return h2 + h1
 
-    lcg = LCG()
-    iv = lcg.generate_iv()
+def iv_to_ints(iv):
+    return (
+        int.from_bytes(iv[:4], 'little'),
+        int.from_bytes(iv[4:], 'little'),
+    )
 
-    r = rc5.RC5(list(key))
-    encrypted = r.encrypt(list(data), list(iv))
+@app.post("/api/lab3/encrypt")
+async def encrypt_file(file: UploadFile = File(...), password: str = Form(...)):
+    key = derive_key(password)
+    r = rc5.RC5(key)
+    iv = bytes(LCG().generate_iv())
+    iv_encrypted = r.encrypt_ecb(iv)
+    prevA, prevB = iv_to_ints(iv)
 
-    encrypted_with_iv = bytes(iv) + bytes(encrypted)
+    async def generate():
+        def pad(data, block_size=8): # для останнього блоку
+            pad_len = block_size - (len(data) % block_size)
+            if pad_len == 0:
+                pad_len = block_size
+            return data + bytes([pad_len] * pad_len)
+        
+        nonlocal prevA, prevB
+        yield iv_encrypted
+
+        leftover = b""
+        while True:
+            chunk = await file.read(CHUNK_SIZE)
+            if not chunk:
+                break
+            buf = leftover + chunk
+            remainder = len(buf) % 8
+            leftover = buf[-remainder:] if remainder else b"" # якщо щось лишилось
+            buf = buf[:-remainder] if remainder else buf # сам блок даних
+            if buf:
+                encrypted, prevA, prevB = r.encrypt(buf, prevA, prevB)
+                yield encrypted
+
+        padded = pad(leftover if leftover else b"") # додаємо падинг, навіть якщо нічого нема
+        encrypted, prevA, prevB = r.encrypt(padded, prevA, prevB)
+        yield encrypted
 
     return StreamingResponse(
-        io.BytesIO(encrypted_with_iv),
+        generate(),
         media_type="application/octet-stream",
-        headers={
-            "Content-Disposition": f"attachment; filename={file.filename}.enc"
-        }
+        headers={"Content-Disposition": f"attachment; filename=res.enc"}
     )
 
 @app.post("/api/lab3/decrypt")
-async def decrypt_file(
-    file: UploadFile = File(...),
-    password: str = Form(...)
-):
+async def decrypt_file(file: UploadFile = File(...), password: str = Form(...)):
     data = await file.read()
-    if len(data) < 8:
-        raise HTTPException(status_code=400, detail="Файл закороткий, аби містити IV")
+    key = derive_key(password)
+    r = rc5.RC5(key)
 
-    iv = list(data[:8])
-    encrypted_data = list(data[8:])
+    iv_encrypted, encrypted_data = data[:8], data[8:] # забираємо наш iv
+    iv = r.decrypt_ecb(iv_encrypted) # і дешифруємо його
 
-    m = md5.MD5()
-    m.update(password.encode())
-    h1 = bytes.fromhex(m.finalize())
-    m.update(h1)
-    h2 = bytes.fromhex(m.finalize())
-    key = h2 + h1
+    prevA, prevB = iv_to_ints(iv)
 
-    try:
-        r = rc5.RC5(list(key))
-        decrypted = r.decrypt(encrypted_data, iv)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Розшифрування провалено")
-
-    filename = file.filename.replace(".enc", "")
+    async def generate():
+        nonlocal prevA, prevB
+        total = len(encrypted_data)
+        offset = 0
+        while offset < total:
+            end = min(offset + CHUNK_SIZE, total) # скільки ще лишилось
+            chunk = encrypted_data[offset:end]
+            is_last = (end == total)
+            decrypted, prevA, prevB = r.decrypt(chunk, prevA, prevB, is_last)
+            yield decrypted
+            offset = end
 
     return StreamingResponse(
-        io.BytesIO(bytes(decrypted)),
+        generate(),
         media_type="application/octet-stream",
-        headers={
-            "Content-Disposition": f"attachment; filename={filename}"
-        }
+        headers={"Content-Disposition": f"attachment; filename=res"}
     )
