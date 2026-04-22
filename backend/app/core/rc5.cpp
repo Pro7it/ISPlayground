@@ -159,7 +159,9 @@ private:
 
     // на кінці, щоб отримати чисті даніт
     vector<uint8_t> unpad(const vector<uint8_t>& data) {
+        if (data.empty()) return data;
         size_t pad_len = data.back();
+        if (pad_len > data.size()) return data; // Invalid padding
         return vector<uint8_t>(data.begin(), data.end() - pad_len);
     }
 };

@@ -2,6 +2,7 @@ from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from app.core.lab1 import LCG
+from app.core.lab4 import RSA
 from app.core import md5, rc5
 # from app.core.lab3 import RC5
 import re
@@ -178,4 +179,42 @@ async def decrypt_file(file: UploadFile = File(...), password: str = Form(...)):
         generate(),
         media_type="application/octet-stream",
         headers={"Content-Disposition": f"attachment; filename=res"}
+    )
+
+@app.post("/api/lab4/generate-keys")
+async def rsa_generate_keys():
+    rsa = RSA()
+    private_key, public_key = rsa.generate_keys()
+
+    return {
+        "private_key": private_key.decode(),
+        "public_key": public_key.decode()
+    }
+
+@app.post("/api/lab4/encrypt")
+async def rsa_encrypt(
+    file: UploadFile = File(...),
+    public_key: str = Form(...)
+):
+    rsa = RSA()
+    rsa.load_public_key(public_key.encode())
+
+    return StreamingResponse(
+        rsa.encrypt_stream(file),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": "attachment; filename=res.enc"}
+    )
+
+@app.post("/api/lab4/decrypt")
+async def rsa_decrypt(
+    file: UploadFile = File(...),
+    private_key: str = Form(...)
+):
+    rsa = RSA()
+    rsa.load_private_key(private_key.encode())
+
+    return StreamingResponse(
+        rsa.decrypt_stream(file),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": "attachment; filename=res"}
     )

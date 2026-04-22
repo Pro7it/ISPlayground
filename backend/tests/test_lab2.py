@@ -1,4 +1,4 @@
-from app.core import md5
+from app.core import lab2 as md5
 from pathlib import Path
 
 def test_md5_empty():

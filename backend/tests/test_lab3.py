@@ -1,65 +1,45 @@
 from pathlib import Path
-from app.core import rc5, md5
-from app.core.lab1 import LCG
+from app.core.lab3 import RC5
 
-lcg = LCG()
-
-def generate_key_from_password(password: str):
-    m = md5.MD5()
-    m.update(password.encode())
-    h1 = bytes.fromhex(m.finalize())
-    m.update(h1)
-    h2 = bytes.fromhex(m.finalize())
-    return h2 + h1
-
-def test_rc5_empty_backend_style():
+def test_rc5_empty():
     password = "testkey12345678"
-    key = generate_key_from_password(password)
-    cipher = rc5.RC5(list(key))
-    iv = lcg.generate_iv()
+    cipher = RC5(password)
     data = b""
-    encrypted = cipher.encrypt(list(data), list(iv))
-    decrypted = bytes(cipher.decrypt(encrypted, list(iv)))
+    encrypted = cipher.encrypt(data)
+    decrypted = cipher.decrypt(encrypted)
     assert decrypted == data
 
-def test_rc5_short_text_backend_style():
+def test_rc5_short_text():
     password = "mysecretkey1234"
-    key = generate_key_from_password(password)
-    cipher = rc5.RC5(list(key))
-    iv = lcg.generate_iv()
+    cipher = RC5(password)
     data = b"hello"
-    encrypted = cipher.encrypt(list(data), list(iv))
-    decrypted = bytes(cipher.decrypt(encrypted, list(iv)))
+    encrypted = cipher.encrypt(data)
+    decrypted = cipher.decrypt(encrypted)
     assert decrypted == data
 
-def test_rc5_block_size_text_backend_style():
+def test_rc5_block_size_text():
     password = "anotherkey5678"
-    key = generate_key_from_password(password)
-    cipher = rc5.RC5(list(key))
-    iv = lcg.generate_iv()
+    cipher = RC5(password)
     data = b"12345678"
-    encrypted = cipher.encrypt(list(data), list(iv))
-    decrypted = bytes(cipher.decrypt(encrypted, list(iv)))
+    encrypted = cipher.encrypt(data)
+    decrypted = cipher.decrypt(encrypted)
     assert decrypted == data
 
-def test_rc5_multiple_blocks_backend_style():
+def test_rc5_multiple_blocks():
     password = "longerkeyforrc5!"
-    key = generate_key_from_password(password)
-    cipher = rc5.RC5(list(key))
-    iv = lcg.generate_iv()
+    cipher = RC5(password)
     data = b"The quick brown fox jumps over the lazy dog."
-    encrypted = cipher.encrypt(list(data), list(iv))
-    decrypted = bytes(cipher.decrypt(encrypted, list(iv)))
+    encrypted = cipher.encrypt(data)
+    decrypted = cipher.decrypt(encrypted)
     assert decrypted == data
 
-def test_rc5_file_backend_style():
+def test_rc5_file():
     password = "filekey12345678"
-    key = generate_key_from_password(password)
-    cipher = rc5.RC5(list(key))
-    iv = lcg.generate_iv()
+    cipher = RC5(password)
     file_path = Path(__file__).parent / "testfile.zip"
     with open(file_path, "rb") as f:
         data = f.read()
-    encrypted = cipher.encrypt(list(data), list(iv))
-    decrypted = bytes(cipher.decrypt(encrypted, list(iv)))
+    
+    encrypted = cipher.encrypt(data)
+    decrypted = cipher.decrypt(encrypted)
     assert decrypted == data
