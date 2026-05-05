@@ -6,6 +6,7 @@ import Lab2 from "./pages/Lab2";
 import Lab3 from "./pages/Lab3";
 import { Typography } from "antd";
 import Lab4 from "./pages/Lab4";
+import Lab5 from "./pages/Lab5";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Tab>MD5</Tab>
             <Tab>RC5</Tab>
             <Tab>RSA</Tab>
+            <Tab>DSS</Tab>
           </TabList>
 
           <TabPanel>
@@ -43,6 +45,10 @@ function App() {
 
           <TabPanel>
             <Lab4 />
+          </TabPanel>
+
+          <TabPanel>
+            <Lab5 />
           </TabPanel>
         </Tabs>
       </div>

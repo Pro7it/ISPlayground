@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from app.core.lab1 import LCG
 from app.core.lab4 import RSA
+from app.core.lab5 import DSA
 from app.core import md5, rc5
 # from app.core.lab3 import RC5
 import re
@@ -218,3 +219,66 @@ async def rsa_decrypt(
         media_type="application/octet-stream",
         headers={"Content-Disposition": "attachment; filename=res"}
     )
+
+@app.post("/api/lab5/generate-keys")
+async def dsa_generate_keys():
+    lab5 = DSA()
+    private_key, public_key = lab5.generate_keys()
+    return {
+        "private_key": private_key.decode(),
+        "public_key": public_key.decode()
+    }
+
+@app.post("/api/lab5/sign/text")
+async def dsa_sign_text(
+    text: str = Form(...),
+    private_key: str = Form(...)
+):
+    lab5 = DSA()
+    try:
+        lab5.load_private_key(private_key.encode())
+        signature = lab5.sign_data(text.encode())
+        return {"signature": signature.hex()}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/lab5/sign/file")
+async def dsa_sign_file(
+    file: UploadFile = File(...),
+    private_key: str = Form(...)
+):
+    lab5 = DSA()
+    try:
+        lab5.load_private_key(private_key.encode())
+        signature = await lab5.sign_stream(file)
+        return {"signature": signature.hex()}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/lab5/verify/text")
+async def dsa_verify_text(
+    text: str = Form(...),
+    signature: str = Form(...),
+    public_key: str = Form(...)
+):
+    lab5 = DSA()
+    try:
+        lab5.load_public_key(public_key.encode())
+        is_valid = lab5.verify_data(text.encode(), bytes.fromhex(signature))
+        return {"is_valid": is_valid}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/lab5/verify/file")
+async def dsa_verify_file(
+    file: UploadFile = File(...),
+    signature: str = Form(...),
+    public_key: str = Form(...)
+):
+    lab5 = DSA()
+    try:
+        lab5.load_public_key(public_key.encode())
+        is_valid = await lab5.verify_stream(file, bytes.fromhex(signature))
+        return {"is_valid": is_valid}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

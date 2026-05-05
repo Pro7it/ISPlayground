@@ -60,30 +60,40 @@ export default function Lab4() {
       return;
     }
 
-    setLoading(true);
+    let writable: any = null;
     try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: `${file.name}.enc`,
+      });
+
+      setLoading(true);
       const keyContent = await readKeyFile(keyFile);
       const formData = new FormData();
       formData.append("file", file);
       formData.append("public_key", keyContent);
 
-      const res = await axios.post(
-        "http://localhost:8000/api/lab4/encrypt",
-        formData,
-        { responseType: "blob" },
-      );
-
-      const handle = await (window as any).showSaveFilePicker({
-        suggestedName: `${file.name}.enc`,
+      const response = await fetch("http://localhost:8000/api/lab4/encrypt", {
+        method: "POST",
+        body: formData,
       });
 
-      const writable = await handle.createWritable();
-      await writable.write(res.data);
-      await writable.close();
+      if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
+      if (!response.body) throw new Error("No response body");
+
+      writable = await handle.createWritable();
+
+      await response.body.pipeTo(writable);
+      writable = null;
+
+      alert("Шифрування завершено!");
     } catch (e: any) {
-      alert("Помилка шифрування");
+      console.error("Encryption error details:", e);
+      if (e.name !== "AbortError") {
+        alert(`Помилка шифрування: ${e.message}`);
+      }
     } finally {
       setLoading(false);
+      if (writable) await writable.close().catch(() => {});
     }
   };
 
@@ -93,19 +103,8 @@ export default function Lab4() {
       return;
     }
 
-    setLoading(true);
+    let writable: any = null;
     try {
-      const keyContent = await readKeyFile(keyFile);
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("private_key", keyContent);
-
-      const res = await axios.post(
-        "http://localhost:8000/api/lab4/decrypt",
-        formData,
-        { responseType: "blob" },
-      );
-
       const filename = file.name.endsWith(".enc")
         ? file.name.slice(0, -4)
         : `decrypted_${file.name}`;
@@ -113,13 +112,35 @@ export default function Lab4() {
       const handle = await (window as any).showSaveFilePicker({
         suggestedName: filename,
       });
-      const writable = await handle.createWritable();
-      await writable.write(res.data);
-      await writable.close();
+
+      setLoading(true);
+      const keyContent = await readKeyFile(keyFile);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("private_key", keyContent);
+
+      const response = await fetch("http://localhost:8000/api/lab4/decrypt", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error(`Server error: ${response.statusText}`);
+      if (!response.body) throw new Error("No response body");
+
+      writable = await handle.createWritable();
+
+      await response.body.pipeTo(writable);
+      writable = null;
+
+      alert("Дешифрування завершено!");
     } catch (e: any) {
-      alert("Помилка дешифрування");
+      console.error("Decryption error details:", e);
+      if (e.name !== "AbortError") {
+        alert(`Помилка дешифрування: ${e.message}`);
+      }
     } finally {
       setLoading(false);
+      if (writable) await writable.close().catch(() => {});
     }
   };
 

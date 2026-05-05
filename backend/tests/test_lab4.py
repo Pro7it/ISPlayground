@@ -92,7 +92,7 @@ async def test_rsa_encrypt_large_file_multiple_chunks():
 async def test_rsa_encrypt_raises_without_key():
     rsa_inst = RSA()
     file_in = AsyncBytesIO(b"test")
-    with pytest.raises(ValueError, match="Public key not loaded"):
+    with pytest.raises(ValueError, match="Публічний ключ не завантажений"):
         async for _ in rsa_inst.encrypt_stream(file_in):
             pass
 
@@ -101,7 +101,7 @@ async def test_rsa_encrypt_raises_without_key():
 async def test_rsa_decrypt_raises_without_key():
     rsa_inst = RSA()
     file_in = AsyncBytesIO(b"encrypted_stuff")
-    with pytest.raises(ValueError, match="Private key not loaded"):
+    with pytest.raises(ValueError, match="Приватний ключ не завантажений"):
         async for _ in rsa_inst.decrypt_stream(file_in):
             pass
 
@@ -112,7 +112,7 @@ async def test_rsa_encrypt_empty_file():
     _, pub = rsa_inst.generate_keys()
     rsa_inst.load_public_key(pub)
     
-    file_in = AsyncBytesIO(b"") # Порожній файл
+    file_in = AsyncBytesIO(b"")
     chunks = []
     async for chunk in rsa_inst.encrypt_stream(file_in):
         chunks.append(chunk)
