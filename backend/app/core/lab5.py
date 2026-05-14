@@ -13,7 +13,7 @@ class DSA:
             key_size=1024
         )
         public_key = private_key.public_key()
-        
+
         private_bytes = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
@@ -43,19 +43,19 @@ class DSA:
     async def sign_stream(self, stream) -> bytes:
         if not self.private_key:
             raise ValueError("Приватний ключ не завантажено")
-        
+
         hasher = hashes.Hash(hashes.SHA256())
         while chunk := await stream.read(64 * 1024):
             hasher.update(chunk)
         digest = hasher.finalize()
-        
+
         signature = self.private_key.sign(
             digest,
             utils.Prehashed(hashes.SHA256())
         )
         return signature
 
-    def verify_data(self, data: bytes, signature: bytes) -> bool:
+    def verify_data(self, data: bytes, signature: bytes):
         if not self.public_key:
             raise ValueError("Публічний ключ не завантажено")
         try:
@@ -68,15 +68,15 @@ class DSA:
         except InvalidSignature:
             return False
 
-    async def verify_stream(self, stream, signature: bytes) -> bool:
+    async def verify_stream(self, stream, signature: bytes):
         if not self.public_key:
             raise ValueError("Публічний ключ не завантажено")
-        
+
         hasher = hashes.Hash(hashes.SHA256())
         while chunk := await stream.read(64 * 1024):
             hasher.update(chunk)
         digest = hasher.finalize()
-        
+
         try:
             self.public_key.verify(
                 signature,

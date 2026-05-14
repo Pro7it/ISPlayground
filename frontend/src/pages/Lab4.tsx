@@ -172,13 +172,13 @@ export default function Lab4() {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", gap: 8 }}>
                 <textarea
-                  placeholder="Public Key"
+                  placeholder="Публічний ключ"
                   value={publicKey}
                   readOnly
                   style={{ width: "50%", height: 150 }}
                 />
                 <textarea
-                  placeholder="Private Key"
+                  placeholder="Приватний ключ"
                   value={privateKey}
                   readOnly
                   style={{ width: "50%", height: 150 }}

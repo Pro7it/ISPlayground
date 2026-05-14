@@ -1,11 +1,14 @@
 import { useState } from "react";
 import axios from "axios";
-import { Card, Spin, Typography, Input, Button, message } from "antd";
+import { Card, Spin, Typography } from "antd";
 import { Tab, TabList, TabPanel, Tabs } from "react-tabs";
 import Dragger from "antd/es/upload/Dragger";
-import { InboxOutlined, KeyOutlined, FileOutlined, EditOutlined, CheckCircleOutlined } from "@ant-design/icons";
-
-const { TextArea } = Input;
+import {
+  KeyOutlined,
+  FileOutlined,
+  EditOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
 
 export default function Lab5() {
   const [file, setFile] = useState<File | null>(null);
@@ -17,7 +20,9 @@ export default function Lab5() {
   const [signature, setSignature] = useState("");
   const [textToVerify, setTextToVerify] = useState("");
   const [signatureToVerify, setSignatureToVerify] = useState("");
-  const [verificationResult, setVerificationResult] = useState<boolean | null>(null);
+  const [verificationResult, setVerificationResult] = useState<boolean | null>(
+    null,
+  );
 
   const readKeyFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -31,12 +36,13 @@ export default function Lab5() {
   const handleGenerateKeys = async () => {
     try {
       setLoading(true);
-      const res = await axios.post("http://localhost:8000/api/lab5/generate-keys");
+      const res = await axios.post(
+        "http://localhost:8000/api/lab5/generate-keys",
+      );
       setPrivateKey(res.data.private_key);
       setPublicKey(res.data.public_key);
-      message.success("Ключі згенеровано");
     } catch {
-      message.error("Помилка генерації ключів");
+      alert("Помилка генерації ключів");
     } finally {
       setLoading(false);
     }
@@ -57,7 +63,6 @@ export default function Lab5() {
       const writable = await handle.createWritable();
       await writable.write(blob);
       await writable.close();
-      message.success("Ключ збережено");
     } catch (e) {
       console.log("Збереження скасовано");
     }
@@ -65,7 +70,7 @@ export default function Lab5() {
 
   const handleSignText = async () => {
     if (!textToSign || !keyFile) {
-      message.warning("Введіть текст і оберіть файл приватного ключа");
+      alert("Введіть текст і оберіть файл приватного ключа");
       return;
     }
     try {
@@ -75,11 +80,13 @@ export default function Lab5() {
       formData.append("text", textToSign);
       formData.append("private_key", privateKeyContent);
 
-      const res = await axios.post("http://localhost:8000/api/lab5/sign/text", formData);
+      const res = await axios.post(
+        "http://localhost:8000/api/lab5/sign/text",
+        formData,
+      );
       setSignature(res.data.signature);
-      message.success("Текст підписано");
     } catch (e: any) {
-      message.error(`Помилка підпису: ${e.response?.data?.detail || e.message}`);
+      alert(`Помилка підпису: ${e.response?.data?.detail || e.message}`);
     } finally {
       setLoading(false);
     }
@@ -87,7 +94,7 @@ export default function Lab5() {
 
   const handleSignFile = async () => {
     if (!file || !keyFile) {
-      message.warning("Оберіть файл і файл приватного ключа");
+      alert("Оберіть файл і файл приватного ключа");
       return;
     }
     try {
@@ -97,11 +104,13 @@ export default function Lab5() {
       formData.append("file", file);
       formData.append("private_key", privateKeyContent);
 
-      const res = await axios.post("http://localhost:8000/api/lab5/sign/file", formData);
+      const res = await axios.post(
+        "http://localhost:8000/api/lab5/sign/file",
+        formData,
+      );
       setSignature(res.data.signature);
-      message.success("Файл підписано");
     } catch (e: any) {
-      message.error(`Помилка підпису: ${e.response?.data?.detail || e.message}`);
+      alert(`Помилка підпису: ${e.response?.data?.detail || e.message}`);
     } finally {
       setLoading(false);
     }
@@ -109,7 +118,7 @@ export default function Lab5() {
 
   const handleVerifyText = async () => {
     if (!textToVerify || !signatureToVerify || !keyFile) {
-      message.warning("Введіть текст, підпис і оберіть файл публічного ключа");
+      alert("Введіть текст, підпис і оберіть файл публічного ключа");
       return;
     }
     try {
@@ -120,15 +129,13 @@ export default function Lab5() {
       formData.append("signature", signatureToVerify);
       formData.append("public_key", publicKeyContent);
 
-      const res = await axios.post("http://localhost:8000/api/lab5/verify/text", formData);
+      const res = await axios.post(
+        "http://localhost:8000/api/lab5/verify/text",
+        formData,
+      );
       setVerificationResult(res.data.is_valid);
-      if (res.data.is_valid) {
-        message.success("Підпис вірний!");
-      } else {
-        message.error("Підпис невірний!");
-      }
     } catch (e: any) {
-      message.error(`Помилка верифікації: ${e.response?.data?.detail || e.message}`);
+      alert(`Помилка верифікації: ${e.response?.data?.detail || e.message}`);
     } finally {
       setLoading(false);
     }
@@ -136,7 +143,7 @@ export default function Lab5() {
 
   const handleVerifyFile = async () => {
     if (!file || !signatureToVerify || !keyFile) {
-      message.warning("Оберіть файл, введіть підпис і оберіть файл публічного ключа");
+      alert("Оберіть файл, введіть підпис і оберіть файл публічного ключа");
       return;
     }
     try {
@@ -147,15 +154,13 @@ export default function Lab5() {
       formData.append("signature", signatureToVerify);
       formData.append("public_key", publicKeyContent);
 
-      const res = await axios.post("http://localhost:8000/api/lab5/verify/file", formData);
+      const res = await axios.post(
+        "http://localhost:8000/api/lab5/verify/file",
+        formData,
+      );
       setVerificationResult(res.data.is_valid);
-      if (res.data.is_valid) {
-        message.success("Підпис вірний!");
-      } else {
-        message.error("Підпис невірний!");
-      }
     } catch (e: any) {
-      message.error(`Помилка верифікації: ${e.response?.data?.detail || e.message}`);
+      alert(`Помилка верифікації: ${e.response?.data?.detail || e.message}`);
     } finally {
       setLoading(false);
     }
@@ -169,7 +174,6 @@ export default function Lab5() {
       const writable = await handle.createWritable();
       await writable.write(signature);
       await writable.close();
-      message.success("Підпис збережено");
     } catch (e) {
       console.log("Збереження скасовано");
     }
@@ -186,12 +190,14 @@ export default function Lab5() {
         </Typography.Paragraph>
       </Card>
 
-      <Tabs onSelect={() => {
-        setFile(null);
-        setKeyFile(null);
-        setSignature("");
-        setVerificationResult(null);
-      }}>
+      <Tabs
+        onSelect={() => {
+          setFile(null);
+          setKeyFile(null);
+          setSignature("");
+          setVerificationResult(null);
+        }}
+      >
         <TabList>
           <Tab>Ключі</Tab>
           <Tab>Підписати</Tab>
@@ -202,32 +208,42 @@ export default function Lab5() {
           <Card>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "flex", gap: 8 }}>
-                <TextArea
+                <textarea
                   placeholder="Публічний ключ"
                   value={publicKey}
                   readOnly
-                  autoSize={{ minRows: 6, maxRows: 10 }}
-                  style={{ width: "50%" }}
+                  style={{ flex: 1, height: 150 }}
                 />
-                <TextArea
+                <textarea
                   placeholder="Приватний ключ"
                   value={privateKey}
                   readOnly
-                  autoSize={{ minRows: 6, maxRows: 10 }}
-                  style={{ width: "50%" }}
+                  style={{ flex: 1, height: 150 }}
                 />
               </div>
-              <Button type="primary" onClick={handleGenerateKeys} loading={loading} block>
-                Згенерувати пару ключів DSA
-              </Button>
+              <div style={{ display: "flex" }}>
+                <button
+                  onClick={handleGenerateKeys}
+                  disabled={loading}
+                  style={{ flex: 1 }}
+                >
+                  Згенерувати пару ключів DSA
+                </button>
+              </div>
               {publicKey && (
                 <div style={{ display: "flex", gap: 8 }}>
-                  <Button onClick={() => downloadKey(publicKey, "dsa_public.pem")} style={{ flex: 1 }}>
+                  <button
+                    onClick={() => downloadKey(publicKey, "dsa_public.pem")}
+                    style={{ flex: 1 }}
+                  >
                     Завантажити Public Key (.pem)
-                  </Button>
-                  <Button onClick={() => downloadKey(privateKey, "dsa_private.pem")} style={{ flex: 1 }}>
+                  </button>
+                  <button
+                    onClick={() => downloadKey(privateKey, "dsa_private.pem")}
+                    style={{ flex: 1 }}
+                  >
                     Завантажити Private Key (.pem)
-                  </Button>
+                  </button>
                 </div>
               )}
             </div>
@@ -237,9 +253,14 @@ export default function Lab5() {
         <TabPanel>
           <Card title="Створення підпису">
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <Typography.Text strong>1. Оберіть файл приватного ключа:</Typography.Text>
+              <Typography.Text>
+                1. Оберіть файл приватного ключа:
+              </Typography.Text>
               <Dragger
-                beforeUpload={(f) => { setKeyFile(f); return false; }}
+                beforeUpload={(f) => {
+                  setKeyFile(f);
+                  return false;
+                }}
                 maxCount={1}
                 onRemove={() => setKeyFile(null)}
               >
@@ -253,42 +274,85 @@ export default function Lab5() {
                   <Tab>Файл</Tab>
                 </TabList>
                 <TabPanel>
-                  <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-                    <TextArea
-                      placeholder="Введіть текст для підпису"
-                      value={textToSign}
-                      onChange={(e) => setTextToSign(e.target.value)}
-                      autoSize={{ minRows: 3 }}
-                    />
-                    <Button type="primary" onClick={handleSignText} loading={loading}>
-                      Підписати текст
-                    </Button>
+                  <div
+                    style={{
+                      marginTop: 12,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex" }}>
+                      <input
+                        type="text"
+                        placeholder="Введіть текст для підпису"
+                        value={textToSign}
+                        onChange={(e) => setTextToSign(e.target.value)}
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+                    <div style={{ display: "flex" }}>
+                      <button
+                        onClick={handleSignText}
+                        disabled={loading}
+                        style={{ flex: 1 }}
+                      >
+                        Підписати текст
+                      </button>
+                    </div>
                   </div>
                 </TabPanel>
                 <TabPanel>
-                  <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div
+                    style={{
+                      marginTop: 12,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
                     <Dragger
-                      beforeUpload={(f) => { setFile(f); return false; }}
+                      beforeUpload={(f) => {
+                        setFile(f);
+                        return false;
+                      }}
                       maxCount={1}
                       onRemove={() => setFile(null)}
                     >
                       <FileOutlined style={{ fontSize: 24 }} />
                       <p>{file ? file.name : "Оберіть файл для підпису"}</p>
                     </Dragger>
-                    <Button type="primary" onClick={handleSignFile} loading={loading}>
-                      Підписати файл
-                    </Button>
+                    <div style={{ display: "flex" }}>
+                      <button
+                        onClick={handleSignFile}
+                        disabled={loading}
+                        style={{ flex: 1 }}
+                      >
+                        Підписати файл
+                      </button>
+                    </div>
                   </div>
                 </TabPanel>
               </Tabs>
 
               {signature && (
-                <div style={{ marginTop: 12 }}>
-                  <Typography.Text strong>Результат підпису (HEX):</Typography.Text>
-                  <TextArea value={signature} readOnly autoSize style={{ marginBottom: 8 }} />
-                  <Button icon={<EditOutlined />} onClick={downloadSignature}>
-                    Зберегти підпис у файл
-                  </Button>
+                <div
+                  style={{
+                    marginTop: 12,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
+                  <Typography.Text>Результат підпису (HEX):</Typography.Text>
+                  <div style={{ display: "flex" }}>
+                    <input value={signature} readOnly style={{ flex: 1 }} />
+                  </div>
+                  <div style={{ display: "flex" }}>
+                    <button onClick={downloadSignature} style={{ flex: 1 }}>
+                      Зберегти підпис у файл
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -298,9 +362,14 @@ export default function Lab5() {
         <TabPanel>
           <Card title="Перевірка підпису">
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <Typography.Text strong>1. Оберіть файл публічного ключа:</Typography.Text>
+              <Typography.Text>
+                1. Оберіть файл публічного ключа:
+              </Typography.Text>
               <Dragger
-                beforeUpload={(f) => { setKeyFile(f); return false; }}
+                beforeUpload={(f) => {
+                  setKeyFile(f);
+                  return false;
+                }}
                 maxCount={1}
                 onRemove={() => setKeyFile(null)}
               >
@@ -308,13 +377,15 @@ export default function Lab5() {
                 <p>{keyFile ? keyFile.name : "Завантажте dsa_public.pem"}</p>
               </Dragger>
 
-              <Typography.Text strong>2. Введіть підпис (HEX):</Typography.Text>
-              <TextArea
-                placeholder="Вставте HEX-підпис тут"
-                value={signatureToVerify}
-                onChange={(e) => setSignatureToVerify(e.target.value)}
-                autoSize
-              />
+              <Typography.Text>2. Введіть підпис (HEX):</Typography.Text>
+              <div style={{ display: "flex" }}>
+                <input
+                  placeholder="Вставте HEX-підпис тут"
+                  value={signatureToVerify}
+                  onChange={(e) => setSignatureToVerify(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+              </div>
 
               <Tabs>
                 <TabList>
@@ -322,31 +393,63 @@ export default function Lab5() {
                   <Tab>Файл</Tab>
                 </TabList>
                 <TabPanel>
-                  <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-                    <TextArea
-                      placeholder="Введіть оригінальний текст"
-                      value={textToVerify}
-                      onChange={(e) => setTextToVerify(e.target.value)}
-                      autoSize={{ minRows: 3 }}
-                    />
-                    <Button type="primary" onClick={handleVerifyText} loading={loading}>
-                      Перевірити підпис тексту
-                    </Button>
+                  <div
+                    style={{
+                      marginTop: 12,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex" }}>
+                      <input
+                        type="text"
+                        placeholder="Введіть оригінальний текст"
+                        value={textToVerify}
+                        onChange={(e) => setTextToVerify(e.target.value)}
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+                    <div style={{ display: "flex" }}>
+                      <button
+                        onClick={handleVerifyText}
+                        disabled={loading}
+                        style={{ flex: 1 }}
+                      >
+                        Перевірити підпис тексту
+                      </button>
+                    </div>
                   </div>
                 </TabPanel>
                 <TabPanel>
-                  <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div
+                    style={{
+                      marginTop: 12,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                    }}
+                  >
                     <Dragger
-                      beforeUpload={(f) => { setFile(f); return false; }}
+                      beforeUpload={(f) => {
+                        setFile(f);
+                        return false;
+                      }}
                       maxCount={1}
                       onRemove={() => setFile(null)}
                     >
                       <FileOutlined style={{ fontSize: 24 }} />
                       <p>{file ? file.name : "Оберіть файл для перевірки"}</p>
                     </Dragger>
-                    <Button type="primary" onClick={handleVerifyFile} loading={loading}>
-                      Перевірити підпис файлу
-                    </Button>
+                    <div style={{ display: "flex" }}>
+                      <button
+                        onClick={handleVerifyFile}
+                        disabled={loading}
+                        style={{ flex: 1 }}
+                      >
+                        Перевірити підпис файлу
+                      </button>
+                    </div>
                   </div>
                 </TabPanel>
               </Tabs>
@@ -355,11 +458,11 @@ export default function Lab5() {
                 <div style={{ marginTop: 12, textAlign: "center" }}>
                   {verificationResult ? (
                     <Typography.Text type="success" style={{ fontSize: 18 }}>
-                      <CheckCircleOutlined /> ПІДПИС ВАЛІДНИЙ
+                      Підпис валідний
                     </Typography.Text>
                   ) : (
                     <Typography.Text type="danger" style={{ fontSize: 18 }}>
-                      ❌ ПІДПИС НЕВАЛІДНИЙ
+                      Підпис не валідний
                     </Typography.Text>
                   )}
                 </div>
@@ -368,6 +471,15 @@ export default function Lab5() {
           </Card>
         </TabPanel>
       </Tabs>
+      {loading && (
+        <Card>
+          <div
+            style={{ display: "flex", justifyContent: "center", padding: 20 }}
+          >
+            <Spin size="large" />
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
